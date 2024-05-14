@@ -9,7 +9,7 @@ on: push
 
 jobs:
   build-and-release:
-    runs-on: self-host
+    runs-on: self-hosted
     name: Build and release app
     steps:
       - uses: actions/checkout@v3
