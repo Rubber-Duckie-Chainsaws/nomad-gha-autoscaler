@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, request
+import pprint
 
 app = Flask(__name__)
 
@@ -6,3 +7,10 @@ app = Flask(__name__)
 def hello_world():
     return "<h1>Hello</h1><p>New World!</p>"
 #    return "<h1>Hello</h1><p>World!</p>"
+
+@app.route("/github-webhook", methods=["POST"])
+def getWebhook():
+    data = request.data
+    pprint.pp(data)
+    return "ok"
+

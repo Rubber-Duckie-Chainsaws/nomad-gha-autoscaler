@@ -25,7 +25,7 @@ job "gha-autoscheduler" {
       }
 
       config {
-        image = ""
+        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest"
 
         ports = ["web"]
       }
@@ -38,8 +38,8 @@ job "gha-autoscheduler" {
           "traefik.http.routers.gha-webhook-https.tls=true",
           "traefik.http.routers.gha-webhook-https.entrypoints=websecure",
           "traefik.http.routers.gha-webhook-https.tls.certresolver=myresolver",
-          "traefik.http.routers.gha-webhook-https.tls.domains[0].main=personal.gha.tipene.dev",
-          "traefik.http.routers.gha-webhook-https.rule=Host(`gha.actual.tipene.dev`)",
+          "traefik.http.routers.gha-webhook-https.tls.domains[0].main=gha.tipene.dev",
+          "traefik.http.routers.gha-webhook-https.rule=Host(`gha.tipene.dev`)",
         ]
         port = "web"
       }
