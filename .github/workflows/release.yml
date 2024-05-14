@@ -36,7 +36,7 @@ jobs:
       - id: run-nomad
         name: Run nomad
         run: |
-          ./bin/nomad nomad/application.nomad
+          ./bin/nomad run nomad/application.nomad
 
 
 
