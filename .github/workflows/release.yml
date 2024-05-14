@@ -20,3 +20,20 @@ jobs:
           docker buildx build . -t nomad/gha-autoscaler
           docker tag nomad/gha-autoscaler:latest 434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest
           docker push 434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest
+
+      - id: Install nomad
+        run: |
+          mkdir bin
+          pushd bin
+          wget https://releases.hashicorp.com/nomad/1.7.6/nomad_1.7.6_linux_amd64.zip -O nomad.zip
+          unzip nomad.zip
+          chmod +x nomad
+          rm nomad.zip
+          popd
+
+      - id: Run nomad
+        run: |
+          ./bin/nomad nomad/application.nomad
+
+
+
