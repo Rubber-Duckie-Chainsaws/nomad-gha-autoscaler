@@ -1,0 +1,8 @@
+services:
+  gha-app:
+    build: .
+    ports:
+      - 5000
+    volumes:
+      - ".:/app"
+      - /app/__pycache__

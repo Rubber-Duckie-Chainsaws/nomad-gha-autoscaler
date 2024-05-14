@@ -9,5 +9,6 @@ RUN pip install -r /build/requirements.txt
 COPY . /app
 
 WORKDIR /app
+EXPOSE 5000
 
-CMD ["python", "main.py"]
+CMD ["flask", "--app", "main", "run", "--host=0.0.0.0", "--debug"]
