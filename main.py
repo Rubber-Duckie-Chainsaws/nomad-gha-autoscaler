@@ -32,7 +32,7 @@ def getWebhook():
     app.logger.info(data.get("action", ""))
     if data.get("action", "") == "queued":
         app.logger.info("Dispatching runner")
-        r = requests.post('http://10.0.1.81:4646/v1/job/github_runner/dispatch', data={'empty': 'body'})
+        r = requests.post('http://10.0.1.81:4646/v1/job/github_runner/dispatch', json={'Meta': {}})
         app.logger.info(r.text)
     else:
         app.logger.info("Doing nothing")
