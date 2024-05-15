@@ -10,9 +10,11 @@ def hello_world():
 
 @app.route("/github-webhook", methods=["POST"])
 def getWebhook():
-    data = dict(request.data)
+    data = dict(request.json)
     if data.get("action", "") == "queued":
         print("Dispatching runner")
+        r = requests.post('http://10.0.1.81:4646/', data={})
+        print(r.text)
     else:
         print("Doing nothing")
     return "ok"
