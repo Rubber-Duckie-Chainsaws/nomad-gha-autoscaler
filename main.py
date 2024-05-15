@@ -13,7 +13,7 @@ def getWebhook():
     data = dict(request.json)
     if data.get("action", "") == "queued":
         print("Dispatching runner")
-        r = requests.post('http://10.0.1.81:4646/', data={})
+        r = requests.post('http://10.0.1.81:4646/v1/job/github_runner/dispatch', data={})
         print(r.text)
     else:
         print("Doing nothing")
