@@ -17,4 +17,5 @@ def getWebhook():
         print(r.text)
     else:
         print("Doing nothing")
+        print(data.get("action", ""))
     return "ok"
