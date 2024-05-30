@@ -45,10 +45,6 @@ def verify_signature(payload_body, signature_header):
     if not hmac.compare_digest(expected_signature, signature_header):
         raise HTTPException(status_code=403, detail="Request signature didn't match!")
 
-@app.route("/")
-def hello_world():
-    return "<h1>Hello</h1><p>New World!</p>"
-
 @app.route("/github-webhook", methods=["POST"])
 def getWebhook():
     app.logger.info("Getting data as dictionary")
