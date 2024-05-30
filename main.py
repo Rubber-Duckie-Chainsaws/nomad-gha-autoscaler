@@ -52,9 +52,10 @@ def hello_world():
 @app.route("/github-webhook", methods=["POST"])
 def getWebhook():
     app.logger.info("Getting data as dictionary")
-    data = request.data
+    payload = request.data
     header_signature = request.headers['X-Hub-Signature-256']
-    verify_signature(data, header_signature)
+    verify_signature(payload, header_signature)
+    data = dict(request.json)
     app.logger.info(data.get("action", ""))
     if data.get("action", "") == "queued":
         app.logger.info("Dispatching runner")
