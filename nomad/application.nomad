@@ -30,6 +30,13 @@ job "gha-autoscheduler" {
         ports = ["web"]
       }
 
+      vault {}
+
+      template {
+        data = "GITHUB_SECRET={{ with secret \"kv/data/default/gha-autoscheduler/config\" }}{{.Data.data.secret}}{{ end }}"
+        destination = "secrets/env"
+      }
+
       service {
         name = "gha-webhook"
         provider = "consul"
