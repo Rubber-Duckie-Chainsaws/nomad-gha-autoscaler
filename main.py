@@ -59,9 +59,14 @@ def getWebhook():
     app.logger.info(data.get("action", ""))
     if data.get("action", "") == "queued":
         app.logger.info("Dispatching runner")
+        # We don't restart the container when nomad updates the env variable
+        # that corresponds to our token (for renewals). So grab it every
+        # time we want to use it. Technically there is a race condition
+        # a retry x3 loop or some such should probably resolve
+        acl_token = os.environ["NOMAD_TOKEN"]
         # The job doesn't take parameters but the api gets mad at an empty body
         # hence the Meta field with nothing in it
-        r = requests.post('http://nomad.service.consul:4646/v1/job/github-runner/dispatch', json={'Meta': {}})
+        r = requests.post('http://nomad.service.consul:4646/v1/job/github-runner/dispatch', json={'Meta': {}}, headers={"X-Nomad-Token": acl_token})
         app.logger.info(r.text)
     else:
         app.logger.info("Doing nothing")
