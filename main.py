@@ -39,7 +39,7 @@ def verify_signature(payload_body, signature_header):
     if not signature_header:
         raise HTTPException(status_code=403, detail="x-hub-signature-256 header is missing!")
     secret_token = os.environ['GITHUB_SECRET']
-    hash_object = hmac.new(secret_token.encode('utf-8'), msg=payload_body, digest_mod=hashlib.sha256)
+    hash_object = hmac.new(secret_token.encode('utf-8'), msg=payload_body, digestmod=hashlib.sha256)
     del secret_token
     expected_signature + "sha256=" + hash_object.hexdigest()
     if not hmac.compare_digest(expected_signature, signature_header):

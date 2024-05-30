@@ -33,8 +33,9 @@ job "gha-autoscheduler" {
       vault {}
 
       template {
-        data = "GITHUB_SECRET={{ with secret \"kv/data/default/gha-autoscheduler/config\" }}{{.Data.data.secret}}{{ end }}"
+        data        = "GITHUB_SECRET={{ with secret \"kv/data/default/gha-autoscheduler/config\" }}{{.Data.data.secret}}{{ end }}"
         destination = "secrets/env"
+        env         = true
       }
 
       service {
