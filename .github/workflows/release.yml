@@ -1,0 +1,42 @@
+name: Release new version
+
+on: push
+  #  pull_request:
+  #    branches:
+  #      - main
+  #    types:
+  #      - closed
+
+jobs:
+  build-and-release:
+    runs-on: self-hosted
+    name: Build and release app
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: docker-build-and-push
+        name: Build and publish on ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 434190342226.dkr.ecr.us-east-1.amazonaws.com
+          docker buildx build . -t nomad/gha-autoscaler
+          docker tag nomad/gha-autoscaler:latest 434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest
+          docker push 434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest
+
+      - id: install-nomad
+        name: Install Nomad
+        run: |
+          mkdir bin
+          pushd bin
+          wget https://releases.hashicorp.com/nomad/1.7.6/nomad_1.7.6_linux_amd64.zip -O nomad.zip
+          unzip nomad.zip
+          chmod +x nomad
+          rm nomad.zip
+          popd
+
+      - id: run-nomad
+        name: Run nomad
+        run: |
+          ./bin/nomad run nomad/application.nomad
+
+
+
