@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import os
 
+from celery import Celery, signature, chain
 import requests
 from flask import Flask, request
 from logging.config import dictConfig
@@ -55,15 +56,22 @@ def getWebhook():
     app.logger.info(data.get("action", ""))
     if data.get("action", "") == "queued":
         app.logger.info("Dispatching runner")
-        # We don't restart the container when nomad updates the env variable
-        # that corresponds to our token (for renewals). So grab it every
-        # time we want to use it. Technically there is a race condition
-        # a retry x3 loop or some such should probably resolve
-        acl_token = os.environ["NOMAD_TOKEN"]
-        # The job doesn't take parameters but the api gets mad at an empty body
-        # hence the Meta field with nothing in it
-        r = requests.post('http://nomad.service.consul:4646/v1/job/github-runner/dispatch', json={'Meta': {}}, headers={"X-Nomad-Token": acl_token})
-        app.logger.info(r.text)
+
+        # I know this is dumb. In a future update,
+        # this should be in shared context instead
+        # of created every time at dispatch
+        USERNAME = os.environ["RABBIT_USER"]
+        PASSWORD = os.environ["RABBIT_PASS"]
+        CONNECTION_ADDRESS = os.environ["RABBIT_URL"]
+        VHOST = os.environ["RABBIT_VHOST"]
+
+        BROKER_URL = f'amqp://{USERNAME}:{PASSWORD}@{CONNECTION_ADDRESS}/{VHOST}'
+        BACKEND_URL = f'rpc://{USERNAME}:{PASSWORD}@{CONNECTION_ADDRESS}/{VHOST}'
+
+        celery = Celery('node_requests', backend=BACKEND_URL, broker=BROKER_URL)
+
+        res = chain(signature('tasks.ec2', args=('build-worker', )), signature('tasks.nomad', args=('github-runner', ), immutable=True))()
+        app.logger.info(res)
     else:
         app.logger.info("Doing nothing")
         app.logger.info(data.get("action", ""))
