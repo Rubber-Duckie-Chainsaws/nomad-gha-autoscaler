@@ -25,7 +25,7 @@ job "gha-autoscheduler" {
       }
 
       config {
-        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/nomad/gha-autoscaler:latest"
+        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/webhook:latest"
 
         ports = ["web"]
       }
@@ -37,7 +37,14 @@ job "gha-autoscheduler" {
       }
 
       template {
-        data        = "GITHUB_SECRET={{ with secret \"kv/data/default/gha-autoscheduler/config\" }}{{.Data.data.secret}}{{ end }}"
+        data = <<EOH
+GITHUB_SECRET={{ with secret "kv/data/default/gha-autoscheduler/config" }}{{.Data.data.secret}}{{ end }}
+RABBIT_USER = "api"
+# Yeah yeah, eventually this goes into vault
+RABBIT_PASS = "api_pass"
+RABBIT_URL="rabbit.service.consul:{{ range service "rabbit" }}{{ .Port }}{{ end }}"
+RABBIT_VHOST="/"
+EOH
         destination = "secrets/env"
         env         = true
       }
@@ -54,6 +61,40 @@ job "gha-autoscheduler" {
           "traefik.http.routers.gha-webhook-https.rule=Host(`gha.tipene.dev`)",
         ]
         port = "web"
+      }
+    }
+  }
+
+  group "worker" {
+    task "celery" {
+      driver = "docker"
+
+      resources {
+        cpu = 90
+        memory = 256
+      }
+
+      template {
+        data = <<EOH
+CONSUL_ADDR = "{{ env "attr.unique.network.ip-address" }}"
+RABBIT_USER = "worker"
+# Yeah yeah, eventually this goes into vault
+RABBIT_PASS = "worker_pass"
+RABBIT_URL="rabbit.service.consul:{{ range service "rabbit" }}{{ .Port }}{{ end }}"
+RABBIT_VHOST="/"
+EOH
+        destination = "secrets/env"
+        env         = true
+      }
+
+      vault {}
+
+      identity {
+        env = true
+      }
+
+      config {
+        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/worker:latest"
       }
     }
   }
