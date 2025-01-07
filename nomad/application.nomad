@@ -1,11 +1,13 @@
 job "gha-autoscheduler" {
   datacenters = ["aws-NYC-1"]
+  namespace = "build"
   type = "service"
 
   constraint {
     attribute = "${node.class}"
     value = "worker"
   }
+
 
   group "webhook" {
     count = 1
@@ -21,7 +23,7 @@ job "gha-autoscheduler" {
 
       resources {
         cpu = 70
-        memory = 128
+        memory = 72
       }
 
       config {
@@ -38,10 +40,11 @@ job "gha-autoscheduler" {
 
       template {
         data = <<EOH
-GITHUB_SECRET={{ with secret "kv/data/default/gha-autoscheduler/config" }}{{.Data.data.secret}}{{ end }}
-RABBIT_USER = "api"
-# Yeah yeah, eventually this goes into vault
-RABBIT_PASS = "api_pass"
+{{ with secret "kv/data/build/gha-autoscheduler/config" }}
+GITHUB_SECRET={{.Data.data.secret}}
+RABBIT_USER={{.Data.data.admin_user}}
+RABBIT_PASS="{{.Data.data.admin_pass}}"
+{{ end }}
 RABBIT_URL="rabbit.service.consul:{{ range service "rabbit" }}{{ .Port }}{{ end }}"
 RABBIT_VHOST="/"
 EOH
@@ -68,20 +71,36 @@ EOH
   group "worker" {
     task "celery" {
       driver = "docker"
+      kill_signal = "SIGTERM"
+      kill_timeout = "20s"
 
       resources {
         cpu = 90
-        memory = 256
+        memory = 140
       }
 
       template {
         data = <<EOH
-CONSUL_ADDR = "{{ env "attr.unique.network.ip-address" }}"
-RABBIT_USER = "worker"
-# Yeah yeah, eventually this goes into vault
-RABBIT_PASS = "worker_pass"
-RABBIT_URL="rabbit.service.consul:{{ range service "rabbit" }}{{ .Port }}{{ end }}"
-RABBIT_VHOST="/"
+{{ with secret "kv/data/build/gha-autoscheduler/gha" }}
+{{.Data.data.priv}}
+{{ end }}
+EOH
+
+        destination = "secrets/pki"
+      }
+
+      template {
+        data = <<EOH
+CONSUL_ADDR          = "{{ env "attr.unique.network.ip-address" }}"
+{{ with secret "kv/data/build/gha-autoscheduler/gha" }}
+GH_APP_CLIENT_ID     = "{{.Data.data.client_id}}"
+{{ end }}
+{{ with secret "kv/data/build/gha-autoscheduler/config" }}
+RABBIT_USER          = "{{.Data.data.admin_user}}"
+RABBIT_PASS          = "{{.Data.data.admin_pass}}"
+{{ end }}
+RABBIT_URL           = "rabbit.service.consul:{{ range service "rabbit" }}{{ .Port }}{{ end }}"
+RABBIT_VHOST         = "/"
 EOH
         destination = "secrets/env"
         env         = true
@@ -95,6 +114,10 @@ EOH
 
       config {
         image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/worker:latest"
+
+        volumes = [
+          "secrets/pki:/etc/pki"
+        ]
       }
     }
   }

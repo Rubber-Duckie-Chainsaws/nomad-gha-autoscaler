@@ -16,4 +16,4 @@ ENV RABBIT_PASS="guest"
 ENV RABBIT_URL="rabbit:5672"
 ENV RABBIT_VHOST="/"
 
-CMD ["celery", "-A", "tasks", "worker", "-l", "INFO", "--concurrency=3"]
+CMD ["celery", "-A", "tasks", "worker", "-l", "DEBUG", "--concurrency=3"]
