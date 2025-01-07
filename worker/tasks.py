@@ -1,4 +1,7 @@
+import jwt
 import os
+import sys
+import time
 
 import boto3
 import consul
@@ -57,12 +60,49 @@ def ec2(class_name):
 
     return class_info
 
-@app.task(name='task.tokenizer')
-def token():
-    return 'github-pat-token'
+@app.task(name='tasks.tokenizer')
+def token(org='rubber-duckie-chainsaws', name='new-auto-worker'):
+    with open('/etc/pki', 'rb') as pem_file:
+        signing_key = pem_file.read()
+
+    CLIENT_ID = os.environ["GH_APP_CLIENT_ID"]
+    INSTALLATION_ID = os.environ["GH_APP_INSTALL_ID"]
+    payload = {
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 120,
+        'iss': CLIENT_ID,
+    }
+
+    # Create JWT
+    encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
+
+    access_token_headers = {
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f'Bearer {encoded_jwt}',
+        "Accept": 'application/vnd.github+json'
+    }
+    access_request = requests.post(f'https://api.github.com/app/installations/{INSTALLATION_ID}/access_tokens', headers=access_token_headers)
+    json_body = access_request.json()
+    user_token = json_body.get('token', 'token-not-found')
+
+    registration_token_headers = {
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f'Bearer {user_token}',
+        "Accept": 'application/vnd.github+json'
+    }
+    token_request = requests.post(f'https://api.github.com/orgs/{org}/actions/runners/registration-token', headers=registration_token_headers)
+    json_body = token_request.json()
+
+    return_payload = {'token': json_body.get('token', 'token-not-found')}
+    return return_payload
+
+@app.task(name='tasks.longtest')
+def long_test():
+    time.sleep(15)
+    return "Waited"
 
 @app.task(name='tasks.nomad')
-def nomad(job_name):
+def nomad(meta_blob, job_name):
     # We don't restart the container when nomad updates the env variable
     # that corresponds to our token (for renewals). So grab it every
     # time we want to use it. Technically there is a race condition
@@ -70,4 +110,4 @@ def nomad(job_name):
     acl_token = os.environ["NOMAD_TOKEN"]
     # The job doesn't take parameters but the api gets mad at an empty body
     # hence the Meta field with nothing in it
-    r = requests.post(f'http://nomad.service.consul:4646/v1/job/{job_name}/dispatch', json={'Meta': {}}, headers={"X-Nomad-Token": acl_token})
+    r = requests.post(f'http://nomad.service.consul:4646/v1/job/{job_name}/dispatch', json={'Meta': meta_blob, "namespace": "build"}, headers={"X-Nomad-Token": acl_token})

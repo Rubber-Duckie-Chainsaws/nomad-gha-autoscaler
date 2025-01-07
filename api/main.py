@@ -70,7 +70,7 @@ def getWebhook():
 
         celery = Celery('node_requests', backend=BACKEND_URL, broker=BROKER_URL)
 
-        res = chain(signature('tasks.ec2', args=('build-worker', )), signature('tasks.nomad', args=('github-runner', ), immutable=True))()
+        res = chain(signature('tasks.ec2', args=('build-worker', )), signature('tasks.tokenizer', immutable=True), signature('tasks.nomad', args=('github-runner', )))()
         app.logger.info(res)
     else:
         app.logger.info("Doing nothing")

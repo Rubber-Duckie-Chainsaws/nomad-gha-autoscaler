@@ -2,3 +2,5 @@ requests
 boto3
 celery
 py-consul
+PyJWT
+pyjwt[crypto]
