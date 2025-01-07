@@ -27,7 +27,7 @@ job "gha-autoscheduler" {
       }
 
       config {
-        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/webhook:latest"
+        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/webhook:v2"
 
         ports = ["web"]
       }
@@ -74,6 +74,13 @@ EOH
       kill_signal = "SIGTERM"
       kill_timeout = "20s"
 
+      restart {
+        attempts = "3"
+        interval = "10m"
+        delay    = "15s"
+        mode     = "delay"
+      }
+
       resources {
         cpu = 90
         memory = 140
@@ -94,6 +101,7 @@ EOH
 CONSUL_ADDR          = "{{ env "attr.unique.network.ip-address" }}"
 {{ with secret "kv/data/build/gha-autoscheduler/gha" }}
 GH_APP_CLIENT_ID     = "{{.Data.data.client_id}}"
+GH_APP_INSTALL_ID    = "{{.Data.data.install_id}}"
 {{ end }}
 {{ with secret "kv/data/build/gha-autoscheduler/config" }}
 RABBIT_USER          = "{{.Data.data.admin_user}}"
@@ -113,7 +121,9 @@ EOH
       }
 
       config {
-        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/worker:latest"
+        image = "434190342226.dkr.ecr.us-east-1.amazonaws.com/gha-autoscaler/worker:v2"
+
+        force_pull = true
 
         volumes = [
           "secrets/pki:/etc/pki"

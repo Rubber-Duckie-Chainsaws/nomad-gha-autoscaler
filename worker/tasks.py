@@ -66,7 +66,8 @@ def token(org='rubber-duckie-chainsaws', name='new-auto-worker'):
         signing_key = pem_file.read()
 
     CLIENT_ID = os.environ["GH_APP_CLIENT_ID"]
-    payload  {
+    INSTALLATION_ID = os.environ["GH_APP_INSTALL_ID"]
+    payload = {
         'iat': int(time.time()),
         'exp': int(time.time()) + 120,
         'iss': CLIENT_ID,
@@ -75,13 +76,22 @@ def token(org='rubber-duckie-chainsaws', name='new-auto-worker'):
     # Create JWT
     encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
 
-    headers = {
+    access_token_headers = {
         "X-GitHub-Api-Version": "2022-11-28",
         "Authorization": f'Bearer {encoded_jwt}',
         "Accept": 'application/vnd.github+json'
     }
-    r = requests.post(f'https://api.github.com/orgs/{org}/actions/runners/registration-token', headers=headers)
-    json_body = r.json()
+    access_request = requests.post(f'https://api.github.com/app/installations/{INSTALLATION_ID}/access_tokens', headers=access_token_headers)
+    json_body = access_request.json()
+    user_token = json_body.get('token', 'token-not-found')
+
+    registration_token_headers = {
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f'Bearer {user_token}',
+        "Accept": 'application/vnd.github+json'
+    }
+    token_request = requests.post(f'https://api.github.com/orgs/{org}/actions/runners/registration-token', headers=registration_token_headers)
+    json_body = token_request.json()
 
     return_payload = {'token': json_body.get('token', 'token-not-found')}
     return return_payload
